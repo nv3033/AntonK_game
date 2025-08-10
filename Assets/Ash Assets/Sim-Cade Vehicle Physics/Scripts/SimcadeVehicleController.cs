@@ -82,7 +82,6 @@ namespace Ashsvp
 
         private float[] offset_Prev = new float[4];
 
-        [HideInInspector]
         public bool CanDrive, CanAccelerate;
 
         private GearSystem GearSystem;
@@ -99,7 +98,7 @@ namespace Ashsvp
             GameObject SkidMarkController_Self = Instantiate(SkidMarkController);
             SkidMarkController_Self.GetComponent<Skidmarks>().SkidmarkWidth = skidmarkWidth;
 
-            CanDrive = true;
+            CanDrive = false;
             CanAccelerate = true;
 
             rb = GetComponent<Rigidbody>();
