@@ -4,138 +4,133 @@ using System.Collections.Generic;
 
 namespace Ashsvp
 {
-    public class ghost
+    public class ghost              //class for ghost car states list
     {
     public Vector3 position;
     public Quaternion rotation;
     }
     public class camera_script : MonoBehaviour
     {
-        private Transform main_car;    //reference main car
-        private SimcadeVehicleController main_car_controller; //car script
+        private Transform main_car;                                         //reference main car
+        private SimcadeVehicleController main_car_controller;               //car script
 
-        private Transform look_point;   //point to look at(must be parent)
-        private Animator idle_animation; //spin while start animation
-        private Canvas ui;
+        private Transform look_point;                                       //point to look at(must be parent)
+        private Animator idle_animation;                                    //spin while start animation
+        private Canvas ui;                                                  //"press start" ui
 
-        private bool follow_car = false;
+        private bool follow_car = false;                                    //if true, camera follows main car
 
-        public float mouse_sen = 100f;
+        public float mouse_sen = 100f;                                      //sensetivity
 
-        public List<ghost> ghosts = new List<ghost>();
-        private string json;
-        private string fileName = "car_json.json";
-        private  string filePath;
+        public List<ghost> ghost_car_transform_frames = new List<ghost>();  //frames for the ghost car path
 
-        public int lap = 0;
-        private int current_lap = 0;
+        public int lap = 0;                                                 //canges when on trigger enter
+        private int current_lap = 0;                                        //value to detect if lap has changed
 
-        int i = 0; 
+        int iframes_iterator = 0;                                           //value to run through car states list
 
-        public GameObject ghost_car_obj;
+        public GameObject ghost_car_obj;                                    //ghost car object
 
         void Start()
         {
-            main_car = GameObject.Find("main_car").transform;
-            main_car_controller = main_car.GetComponent<SimcadeVehicleController>();
+            main_car = GameObject.Find("main_car").transform;               //find main car in scene
+            ghost_car_obj = GameObject.Find("ghost");
+            main_car_controller = main_car.GetComponent<SimcadeVehicleController>();//loading main car script
 
-            look_point = transform.parent;
-            idle_animation = look_point.GetComponent<Animator>();
-            ui = transform.GetChild(0).GetComponent<Canvas>();
+            look_point = transform.parent;                                  //find point for camera to look when the game is paused
+            idle_animation = look_point.GetComponent<Animator>();           //animation of spining camera
+            ui = transform.GetChild(0).GetComponent<Canvas>();              //ui text
 
-            UnityEngine.Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-
-            filePath = Path.Combine(Application.dataPath, fileName);
+            UnityEngine.Cursor.lockState = CursorLockMode.Locked;           //lock cursor
+            Cursor.visible = false;                                         //hide cursor
         }
 
         void Update()
         {
-            if (!follow_car)
+            if (!follow_car)                        //if game is paused
             {
-                if (Input.GetKey(KeyCode.Space))
+                if (Input.GetKey(KeyCode.Space))    //start game when space is pressed
                 {
                     Start_Game();
                 }
             }
-            else
+            else                                    //if game is running
             {
-                look_point.position = main_car.position;
+                look_point.position = main_car.position;//follow car with camera
 
-                Look_with_Mouse();
+                Look_with_Mouse();                  //add mouse input
             }
 
-            if (lap != current_lap)
+            if (lap != current_lap)                 //detect lap change
             {
-                current_lap = lap;
-                Restart_Game();
-                //for (int i2= 0; i2 < ghosts.Count; i ++)
-                //    Debug.Log(ghosts[i2]);
+                current_lap = lap;                 
+                Restart_Game();                     //restart if lap completed
             }
         }
 
         void FixedUpdate()
         {
-            if (current_lap == 0)
+            switch (current_lap)                    //ghost car controll
             {
-                ghost ghost_car = new ghost();
-                ghost_car.position = main_car.transform.position;
-                ghost_car.rotation = main_car.transform.rotation;
-
-                ghosts.Add(ghost_car);
-
+                case 0:
+                    Write_Frame();                  //remember path if first lap
+                    break;
+                case 1:
+                    Ghost_Car_Ride();               //start ride if second lap
+                    break;
+                case 2:
+                    Application.Quit();             //end game when ride is completed
+                    break;
             }
-            else if (current_lap == 1)
-            {
-                if (i < ghosts.Count)
-                ghost_car_obj.transform.position = ghosts[i].position;
-                ghost_car_obj.transform.rotation = ghosts[i].rotation;
-                Debug.Log(ghosts[i].position);
-                i += 1;
-
-            }
-            else if (current_lap == 2)
-                Application.Quit();
-            //ghost_car_obj.transform.position = main_car.transform.position;
         }
 
-        void Start_Game() {
+        void Write_Frame(){                                                         //func to remmber main car position in every frame
+                ghost ghost_car_current_transform = new ghost();                    //create empty frame
+                ghost_car_current_transform.position = main_car.transform.position; //add position data to the frame
+                ghost_car_current_transform.rotation = main_car.transform.rotation; //add rotation data to the frame
+
+                ghost_car_transform_frames.Add(ghost_car_current_transform);        //add frames to the list with frames
+        }
+
+        void Ghost_Car_Ride()                                                       //func to move ghost car
+            {
+                if (iframes_iterator < ghost_car_transform_frames.Count)            //catch out of bound  
+                {
+                    ghost_car_obj.transform.position = ghost_car_transform_frames[iframes_iterator].position;  //move ghost
+                    ghost_car_obj.transform.rotation = ghost_car_transform_frames[iframes_iterator].rotation;  //rotate ghost
+                }
+                iframes_iterator += 1;                                              //go to the next frame
+        }
+
+        void Start_Game() {                                                         //when space is presse
             Debug.Log("Start");
-            ui.enabled = false;
-            idle_animation.enabled = false;
-            main_car_controller.CanDrive = true;
-            main_car_controller.CanAccelerate = true;
-            look_point.rotation = Quaternion.Euler(0, 0, 0);
-            follow_car = true;
+            ui.enabled = false;                                                     //hide ui
+            idle_animation.enabled = false;                                         //end camera spin
+            main_car_controller.CanDrive = true;                                    //unlock car movement
+            main_car_controller.CanAccelerate = true;                               
+            look_point.rotation = Quaternion.Euler(0, 0, 0);                        //restart camera position
+            follow_car = true;                                                      //start to follow car with camera
         }
 
-        void Restart_Game()
+        void Restart_Game()                                                         //when lap completed but space is not pressed yet
         {
-            Debug.Log("Restart");
-            ui.enabled = true;
-            idle_animation.enabled = true;
-            main_car_controller.CanDrive = false;
+            Debug.Log("Restart");       
+            ui.enabled = true;                                                      
+            idle_animation.enabled = true;                                          //start to spin camera
+            main_car_controller.CanDrive = false;                                   //stop car movement
             main_car_controller.CanAccelerate = false;
-            follow_car = false;
+            follow_car = false;                                                     //unlock camera from car
             //for (int i = 0; i < ghosts.Count; i ++)
             //ghost_car_obj.GetComponent<ghost_script>().start = true;
         }
 
-        void Write_Json()
-        {
-            
-            //Debug.Log(ghost_car.position);
-            //json += JsonUtility.ToJson(ghost_car);
-            //File.WriteAllText(filePath, json);
-        }
-
-        void Look_with_Mouse()
+        void Look_with_Mouse()                                                      //mouse input
         {
             float mouseX = Input.GetAxis("Mouse X");
-            float mouseY = Input.GetAxis("Mouse Y");
+            //float mouseY = Input.GetAxis("Mouse Y");
 
             look_point.transform.Rotate(Vector3.up, mouseX * mouse_sen * Time.deltaTime);
-            look_point.transform.Rotate(Vector3.right, -mouseY * mouse_sen * Time.deltaTime);
+            //look_point.transform.Rotate(Vector3.right, -mouseY * mouse_sen * Time.deltaTime);
         }
     }
 }
