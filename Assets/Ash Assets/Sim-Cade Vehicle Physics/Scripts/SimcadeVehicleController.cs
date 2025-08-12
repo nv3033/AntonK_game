@@ -86,12 +86,24 @@ namespace Ashsvp
 
         private GearSystem GearSystem;
 
+        public GameObject camera;
+        public Transform start_pos;
+        
+
 
         //Skidmarks
         [HideInInspector]
         public float[] forwardSlip = new float[4], slipCoeff = new float[4], skidTotal = new float[4];
         private WheelSkid[] wheelSkids = new WheelSkid[4];
 
+        private void OnTriggerEnter(Collider other) {
+            if (other.gameObject.tag == "Respawn")
+            {
+                transform.position = start_pos.position;
+                transform.rotation = start_pos.rotation;
+                camera.GetComponent<camera_script>().lap += 1;
+            }
+        }
 
         void Awake()
         {
